@@ -1,1 +1,217 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
 
+// ==========================
+// Wi-Fi credentials
+// ==========================
+const char* ssid = "twe";
+const char* password = "123456789";
+
+// ==========================
+// MQTT broker settings
+// ==========================
+const char* mqttServer = "broker.hivemq.com";   // or your broker IP/domain
+const int mqttPort = 1883;
+const char* mqttUser = "";                      // leave empty if not used
+const char* mqttPassword = "";                  // leave empty if not used
+
+// ==========================
+// MQTT topics
+// ==========================
+const char* topicSubscribe = "esp32/demo/in/42";
+const char* topicPublish   = "esp32/demo/out/42";
+
+// ==========================
+// Globals
+// ==========================
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+unsigned long lastPublish = 0;
+const unsigned long publishInterval = 5000; // 5 seconds
+
+// Example state variables
+bool ledState = false;
+int counter = 0;
+
+// ==========================
+// Connect to Wi-Fi
+// ==========================
+void connectWiFi() {
+  Serial.print("Connecting to Wi-Fi");
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println();
+  Serial.println("Wi-Fi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+// ==========================
+// MQTT message callback
+// ==========================
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  Serial.println();
+  Serial.print("Message received on topic: ");
+  Serial.println(topic);
+
+  // Convert payload bytes to a null-terminated char array
+  char message[length + 1];
+  for (unsigned int i = 0; i < length; i++) {
+    message[i] = (char)payload[i];
+  }
+  message[length] = '\0';
+
+  Serial.print("Raw payload: ");
+  Serial.println(message);
+
+  // Parse JSON
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, message);
+
+  if (error) {
+    Serial.print("JSON parse failed: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  // Safely read fields
+  const char* command = doc["command"] | "";
+  int value = doc["value"] | 0;
+  const char* device = doc["device"] | "unknown";
+
+  Serial.print("device: ");
+  Serial.println(device);
+
+  Serial.print("command: ");
+  Serial.println(command);
+
+  Serial.print("value: ");
+  Serial.println(value);
+
+  // Example actions
+  if (strcmp(command, "led_on") == 0) {
+    ledState = true;
+    digitalWrite(2, HIGH);   // built-in LED on many ESP32 boards
+    Serial.println("LED turned ON");
+  } 
+  else if (strcmp(command, "led_off") == 0) {
+    ledState = false;
+    digitalWrite(2, LOW);
+    Serial.println("LED turned OFF");
+  }
+  else if (strcmp(command, "set_counter") == 0) {
+    counter = value;
+    Serial.print("Counter updated to: ");
+    Serial.println(counter);
+  }
+}
+
+// ==========================
+// Connect/reconnect MQTT
+// ==========================
+void connectMQTT() {
+  while (!client.connected()) {
+    Serial.print("Connecting to MQTT...");
+
+    String clientId = "ESP32Client-";
+    clientId += String((uint32_t)ESP.getEfuseMac(), HEX);
+
+    bool connected;
+    if (strlen(mqttUser) > 0) {
+      connected = client.connect(clientId.c_str(), mqttUser, mqttPassword);
+    } else {
+      connected = client.connect(clientId.c_str());
+    }
+
+    if (connected) {
+      Serial.println("connected");
+      client.subscribe(topicSubscribe);
+      Serial.print("Subscribed to: ");
+      Serial.println(topicSubscribe);
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" retrying in 3 seconds");
+      delay(3000);
+    }
+  }
+}
+
+// ==========================
+// Publish JSON message
+// ==========================
+void publishJsonMessage() {
+  JsonDocument doc;
+
+  doc["device"] = "esp32";
+  doc["status"] = ledState ? "on" : "off";
+  doc["counter"] = counter;
+  doc["ip"] = WiFi.localIP().toString();
+  doc["rssi"] = WiFi.RSSI();
+
+  char buffer[256];
+  size_t n = serializeJson(doc, buffer);
+
+  bool ok = client.publish(topicPublish, buffer, n);
+
+  Serial.print("Publishing to ");
+  Serial.println(topicPublish);
+  Serial.print("Payload: ");
+  Serial.println(buffer);
+
+  if (ok) {
+    Serial.println("Publish success");
+  } else {
+    Serial.println("Publish failed");
+  }
+}
+
+// ==========================
+// Setup
+// ==========================
+void setup() {
+  Serial.begin(115200);
+  pinMode(2, OUTPUT);
+  digitalWrite(2, LOW);
+
+  connectWiFi();
+
+  client.setServer(mqttServer, mqttPort);
+  client.setCallback(mqttCallback);
+}
+
+// ==========================
+// Main loop
+// ==========================
+void loop() {
+  // Reconnect Wi-Fi if needed
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("Wi-Fi lost. Reconnecting...");
+    connectWiFi();
+  }
+
+  // Reconnect MQTT if needed
+  if (!client.connected()) {
+    connectMQTT();
+  }
+
+  // Must be called regularly for MQTT
+  client.loop();
+
+  // Periodic publish
+  if (millis() - lastPublish >= publishInterval) {
+    lastPublish = millis();
+    counter++;
+    
+    publishJsonMessage();
+  }
+}
