@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart Home Dashboard</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:Arial; }
+  body { display:flex; background:#4CAF50; height:100vh; }
+
+  .container { display:flex; width:100%; }
+
+  /* Sidebar */
+  .sidebar { width:200px; background:#2c3e50; color:yellow; padding:20px; }
+  .sidebar h2 { margin-bottom:20px; }
+  .sidebar ul { list-style:none; }
+  .sidebar ul li { padding:10px 0; }
+
+  /* Main */
+  .main { flex:1; padding:20px; }
+  .topbar { margin-bottom:20px; }
+
+  /* Cards */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px; }
+
+  .card {
+    background:red;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+  }
+
+  /* Switch */
+  .switch input { display:none; }
+
+  .slider {
+    width:50px;
+    height:25px;
+    background:#4CAF50;
+    border-radius:25px;
+    display:inline-block;
+    position:relative;
+    cursor:pointer;
+    margin-top:10px;
+  }
+
+  .slider::before {
+    content:"";
+    width:20px;
+    height:20px;
+    background:pink;
+    border-radius:50%;
+    position:absolute;
+    left:3px;
+    bottom:2.5px;
+    transition:0.3s;
+  }
+
+  input:checked + .slider {
+    background:#4CAF50;
+  }
+
+  input:checked + .slider::before {
+    transform:translateX(25px);
+  }
+
+  /* STATUS TEXT */
+  .status::after {
+    content: "OFF";
+    display:block;
+    margin-top:10px;
+    font-weight:bold;
+    color:blue;
+  }
+
+  input:checked ~ .status::after {
+    content: "ON";
+    color:green;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <nav class="sidebar">
+    <h2>Smart Home</h2>
+    <ul>
+      <li>Dashboard</li>
+      <li>Rooms</li>
+      <li>Settings</li>
+    </ul>
+  </nav>
+
+  <main class="main">
+    <header class="topbar"><h2>Dashboard</h2></header>
+
+    <section class="cards">
+
+      <!-- Fan -->
+      <div class="card">
+        <h3>Fan</h3>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider"></span>
+          <span class="status"></span>
+        </label>
+      </div>
+
+      <!-- Lamp -->
+      <div class="card">
+        <h3>Lamp</h3>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider"></span>
+          <span class="status"></span>
+        </label>
+      </div>
+
+      <!-- TV -->
+      <div class="card">
+        <h3>Television</h3>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider"></span>
+          <span class="status"></span>
+        </label>
+      </div>
+
+      <!-- Bell -->
+      <div class="card">
+        <h3>Bell</h3>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider"></span>
+          <span class="status"></span>
+        </label>
+      </div>
+
+      <!-- Camera -->
+      <div class="card">
+        <h3>Camera</h3>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider"></span>
+          <span class="status"></span>
+        </label>
+      </div>
+
+      <!-- Projector -->
+      <div class="card">
+        <h3>Projector</h3>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider"></span>
+          <span class="status"></span>
+        </label>
+      </div>
+
+      <!-- Refrigerator -->
+      <div class="card">
+        <h3>Refrigerator</h3>
+        <label class="switch">
+          <input type="checkbox">
+          <span class="slider"></span>
+          <span class="status"></span>
+        </label>
+      </div>
+
+    </section>
+  </main>
+
+</div>
+
+</body>
+</html>
